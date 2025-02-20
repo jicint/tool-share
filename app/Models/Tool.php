@@ -24,6 +24,13 @@ class Tool extends Model
         'availability_status' => 'boolean'
     ];
 
+    protected $primaryKey = 'id';
+
+    public function getRouteKeyName()
+    {
+        return 'id';
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

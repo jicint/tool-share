@@ -25,6 +25,21 @@ A Laravel-based tool sharing platform that enables users to rent and lend tools 
 - `GET /api/tools/{id}` - Get tool details
 - `DELETE /api/tools/{id}` - Delete a tool
 
+### Rentals
+- POST `/api/tools/{toolId}/rent` - Rent a tool
+  - Requires authentication
+  - Request body:
+    ```json
+    {
+        "start_date": "YYYY-MM-DD",
+        "end_date": "YYYY-MM-DD",
+        "total_price": 150.00
+    }
+    ```
+  - Returns 201 on success
+  - Returns 403 if trying to rent own tool
+  - Returns 422 if tool is unavailable
+
 ## Technology Stack
 - PHP 8.1+
 - Laravel 10.x
@@ -82,8 +97,6 @@ Run specific test suite:
 ## License
 MIT License
 
-## Authors
-- Your Name (@yourgithub)
 
 ## Acknowledgments
 - Laravel Team
