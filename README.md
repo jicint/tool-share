@@ -12,6 +12,13 @@ A Laravel-based tool sharing platform that enables users to rent and lend tools 
 - Categorize tools (Power Tools, Hand Tools, etc.)
 - Track tool conditions
 
+### Rental System
+- Rent available tools
+- Prevent self-rental (users can't rent their own tools)
+- Validate rental periods
+- Track rental status
+- Calculate total rental price
+
 ### User Features
 - User authentication with Laravel Sanctum
 - Tool ownership management
@@ -24,9 +31,7 @@ A Laravel-based tool sharing platform that enables users to rent and lend tools 
 - `GET /api/tools` - List all tools
 - `GET /api/tools/{id}` - Get tool details
 - `DELETE /api/tools/{id}` - Delete a tool
-
-### Rentals
-- POST `/api/tools/{toolId}/rent` - Rent a tool
+- `POST /api/tools/{toolId}/rent` - Rent a tool
   - Requires authentication
   - Request body:
     ```json
