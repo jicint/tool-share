@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateToolsTable extends Migration
 {
     public function up()
     {
@@ -14,9 +14,8 @@ return new class extends Migration
             $table->string('name');
             $table->text('description');
             $table->string('category');
+            $table->string('condition');
             $table->decimal('daily_rate', 8, 2);
-            $table->enum('condition', ['excellent', 'good', 'fair']);
-            $table->boolean('availability_status')->default(true);
             $table->timestamps();
         });
     }
@@ -25,4 +24,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('tools');
     }
-}; 
+} 

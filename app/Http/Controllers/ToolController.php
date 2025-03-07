@@ -3,101 +3,126 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tool;
+use App\Models\Rental;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ToolController extends Controller
 {
+    public function create()
+    {
+        return view('tools.create');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
+            'name' => 'required|string|max:255',
             'description' => 'required|string',
             'category' => 'required|string',
-            'daily_rate' => 'required|numeric|min:0',
-            'condition' => 'required|in:excellent,good,fair',
-            'availability_status' => 'boolean',
-            'images.*' => 'image|mimes:jpeg,png,jpg|max:5120'
+            'condition' => 'required|string',
+            'daily_rate' => 'required|numeric|min:0'
         ]);
 
-        $tool = Tool::create([
-            'user_id' => auth()->id(),
-            ...$validated
-        ]);
+        $tool = auth()->user()->tools()->create($validated);
 
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('tools', 'public');
-                $tool->images()->create(['image_path' => $path]);
-            }
-        }
-
-        return response()->json($tool, 201);
+        return redirect()->route('dashboard')->with('success', 'Tool added successfully!');
     }
 
-    public function index(Request $request)
+    public function index()
     {
-        $tools = $request->user()->tools()->latest()->get();
-        return response()->json($tools);
-    }
-
-    public function show(Tool $tool)
-    {
-        Log::info('Tool show method called', [
-            'tool_id' => $tool->id,
-            'image_path' => $tool->image_path,
-            'user_id' => auth()->id(),
-            'tool_user_id' => $tool->user_id
+        // Get current user
+        $user = auth()->user();
+        Log::info('1. Current user:', [
+            'id' => $user->id,
+            'email' => $user->email
         ]);
 
-        if ($tool->user_id !== auth()->id()) {
-            Log::warning('Unauthorized tool access attempt');
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // Get tools
+        $tools = Tool::with('user')->latest()->get();
+        Log::info('2. Tools found:', ['count' => $tools->count()]);
 
-        if ($tool->image_path) {
-            $tool->image_url = asset('storage/' . $tool->image_path);
-        }
+        // Check rentals table directly using DB facade
+        $dbRentals = DB::table('rentals')
+            ->where('user_id', $user->id)
+            ->get();
+        Log::info('3. Raw rentals from DB:', [
+            'count' => $dbRentals->count(),
+            'rentals' => $dbRentals->toArray()
+        ]);
 
-        return response()->json($tool->load('images'));
+        // Get rentals using Eloquent
+        $rentals = Rental::where('user_id', $user->id)
+            ->with(['tool', 'tool.user'])
+            ->latest()
+            ->get();
+        Log::info('4. Eloquent rentals:', [
+            'count' => $rentals->count(),
+            'rentals' => $rentals->toArray()
+        ]);
+
+        // Get received rentals
+        $receivedRentals = Rental::whereHas('tool', function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->with(['tool', 'user'])->latest()->get();
+
+        // Debug view data
+        Log::info('5. Data being passed to view:', [
+            'tools_count' => $tools->count(),
+            'rentals_count' => $rentals->count(),
+            'received_rentals_count' => $receivedRentals->count()
+        ]);
+
+        // Check if rentals are actually in the database
+        $allRentals = DB::select('SELECT * FROM rentals');
+        Log::info('6. All rentals in database:', [
+            'count' => count($allRentals),
+            'rentals' => $allRentals
+        ]);
+
+        return view('dashboard', compact('tools', 'rentals', 'receivedRentals'));
+    }
+
+    public function show($id)
+    {
+        $tool = Tool::findOrFail($id);
+        return response()->json([
+            'id' => $tool->id,
+            'name' => $tool->name,
+            'description' => $tool->description,
+            'category' => $tool->category,
+            'daily_rate' => $tool->daily_rate,
+            'condition' => $tool->condition,
+            'availability_status' => $tool->availability_status,
+            'user_id' => $tool->user_id
+        ]);
     }
 
     public function update(Request $request, Tool $tool)
     {
-        // Add more detailed debugging
-        Log::info('Update attempt details', [
-            'authenticated' => $request->user() ? 'yes' : 'no',
-            'auth_user_id' => $request->user() ? $request->user()->id : null,
-            'tool_user_id' => $tool->user_id,
-            'tool_id' => $tool->id,
-            'ids_match' => ($request->user() && $request->user()->id === $tool->user_id) ? 'yes' : 'no'
-        ]);
-
-        if ($tool->user_id !== $request->user()->id) {
-            Log::info('Authorization failed', [
-                'reason' => 'User ID mismatch',
-                'auth_user_id' => $request->user()->id,
-                'tool_user_id' => $tool->user_id
-            ]);
-            return response()->json(['error' => 'Unauthorized'], 403);
+        if ($tool->user_id !== auth()->id()) {
+            return redirect()->route('dashboard')
+                ->with('error', 'You are not authorized to edit this tool.');
         }
 
         $validated = $request->validate([
-            'name' => 'sometimes|string',
-            'description' => 'sometimes|string',
-            'category' => 'sometimes|string',
-            'daily_rate' => 'sometimes|numeric|min:0',
-            'condition' => 'sometimes|in:excellent,good,fair',
-            'availability_status' => 'sometimes|boolean'
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'category' => 'required|string',
+            'condition' => 'required|string',
+            'daily_rate' => 'required|numeric|min:0'
         ]);
 
         $tool->update($validated);
 
-        return response()->json($tool->fresh(), 200);
+        return redirect()->route('dashboard')
+            ->with('success', 'Tool updated successfully!');
     }
 
     public function destroy(Tool $tool)

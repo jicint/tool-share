@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('tool_images', function (Blueprint $table) {
-            $table->id();
+        Schema::table('rentals', function (Blueprint $table) {
             $table->foreignId('tool_id')->constrained()->onDelete('cascade');
-            $table->string('image_path');
-            $table->timestamps();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('tool_images');
+        Schema::table('rentals', function (Blueprint $table) {
+            $table->dropForeign(['tool_id']);
+            $table->dropColumn('tool_id');
+        });
     }
 }; 

@@ -5,9 +5,20 @@
  */
 
 import axios from 'axios';
-window.axios = axios;
 
+window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.defaults.withCredentials = true;
+
+// Try to get CSRF token, but don't throw error if meta tag doesn't exist
+try {
+    const token = document.querySelector('meta[name="csrf-token"]');
+    if (token) {
+        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.getAttribute('content');
+    }
+} catch (e) {
+    console.error('CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token');
+}
 
 /**
  * Echo exposes an expressive API for subscribing to channels and listening

@@ -2,6 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\ToolController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RentalController;
+use App\Http\Controllers\AdminAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,10 +35,37 @@ Route::get('/test-log', function () {
     }
 });
 
-Route::get('/', function () {
-    return view('welcome');
+Route::middleware(['web'])->group(function () {
+    Route::get('/', function () {
+        return view('welcome');
+    });
+
+    // Guest routes (login)
+    Route::middleware('guest')->group(function () {
+        Route::get('login', [AuthenticatedSessionController::class, 'create'])
+            ->name('login');
+        Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    });
+
+    // Authenticated routes
+    Route::middleware('auth')->group(function () {
+        Route::get('/dashboard', [ToolController::class, 'index'])->name('dashboard');
+        Route::post('/tools', [ToolController::class, 'store'])->name('tools.store');
+        Route::put('/tools/{tool}', [ToolController::class, 'update'])->name('tools.update');
+        Route::post('/rentals', [RentalController::class, 'store'])->name('rentals.store');
+        Route::put('/rentals/{rental}', [RentalController::class, 'update'])->name('rentals.update');
+        Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+        Route::get('/tools/create', [ToolController::class, 'create'])->name('tools.create');
+    });
+
+    // Admin routes
+    Route::prefix('admin')->group(function () {
+        Route::get('login', [AdminAuthController::class, 'create'])
+            ->name('admin.login');
+        
+        Route::post('login', [AdminAuthController::class, 'store']);
+    });
 });
 
-Route::get('/{any}', function () {
-    return view('app');
-})->where('any', '.*');
+// Comment out this line if you have auth routes defined above
+// require __DIR__.'/auth.php';

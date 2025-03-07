@@ -9,28 +9,30 @@ class Rental extends Model
 {
     use HasFactory;
 
+    protected $table = 'rentals';
+
     protected $fillable = [
         'tool_id',
         'user_id',
         'start_date',
         'end_date',
-        'total_price',
+        'total_cost',
         'status'
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
-        'total_price' => 'decimal:2'
+        'total_cost' => 'decimal:2'
     ];
-
-    public function tool()
-    {
-        return $this->belongsTo(Tool::class);
-    }
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function tool()
+    {
+        return $this->belongsTo(Tool::class);
     }
 } 

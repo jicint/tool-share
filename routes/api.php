@@ -8,6 +8,11 @@ use App\Http\Controllers\RentalController;
 use App\Models\Tool;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\RentalHistoryController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Api\RentalController as ApiRentalController;
+use App\Http\Controllers\Api\AuthController as ApiAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,9 +29,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// Public routes
+Route::post('/login', [ApiAuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
 
+// Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
@@ -38,11 +45,27 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::apiResource('tools', ToolController::class);
     Route::post('tools/{tool}/images', [ToolController::class, 'uploadImages']);
+    Route::post('/tools', [ToolController::class, 'store']);
     Route::post('/tools/{toolId}/rent', [RentalController::class, 'store'])
         ->name('tools.rent');
+    Route::get('/tools/{toolId}/check-availability', [RentalController::class, 'checkAvailability'])
+        ->name('tools.check-availability');
     Route::get('/debug/tool/{tool}', function(Tool $tool) {
         return response()->json(['tool' => $tool]);
     });
+    Route::get('/rentals/history', [RentalHistoryController::class, 'userHistory']);
+    Route::get('/tools/{toolId}/history', [RentalHistoryController::class, 'toolHistory']);
+    Route::get('/tools', [ToolController::class, 'index']);
+    Route::get('/tools/{id}', [ToolController::class, 'show']);
+    Route::post('/tools/{id}/rent', [RentalController::class, 'store']);
+    Route::get('/rentals', [RentalController::class, 'index']);
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::post('/rentals/{id}/return', [RentalController::class, 'returnTool']);
+    Route::post('/rentals/{id}/rate', [RentalController::class, 'rate']);
+    Route::get('/rentals/rating-stats', [RentalController::class, 'getRatingStats']);
+    Route::get('/rentals/{rental}/costs', [PaymentController::class, 'calculateCosts']);
+    Route::post('/rentals/{rental}/payment-intent', [PaymentController::class, 'createPaymentIntent']);
+    Route::get('/rentals/{rental}', [ApiRentalController::class, 'show']);
 });
 
 Route::get('/test-tool/{tool}', function (Tool $tool) {

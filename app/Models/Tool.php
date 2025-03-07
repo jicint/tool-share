@@ -10,13 +10,12 @@ class Tool extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
         'name',
         'description',
         'category',
-        'daily_rate',
         'condition',
-        'availability_status'
+        'daily_rate',
+        'user_id'
     ];
 
     protected $casts = [
@@ -34,6 +33,11 @@ class Tool extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function rentals()
+    {
+        return $this->hasMany(Rental::class);
     }
 
     public function bookings()
